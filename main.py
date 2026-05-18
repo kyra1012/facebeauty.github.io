@@ -1,6 +1,42 @@
 import streamlit as st
 import sqlite3
 import os
+import urllib.request  # 新增：用于云端自动下载巨型模型文件
+
+# ================= 1. 核心配置 (必须是第一行执行的代码) =================
+st.set_page_config(
+    page_title="Beauty Face | 审美实验室",
+    page_icon="✨",
+    layout="wide",
+    initial_sidebar_state="collapsed"
+)
+
+# ================= [核心新增] 1.5 Dlib 模型云端自动下载与校验引擎 =================
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+PREDICTOR_PATH = os.path.join(BASE_DIR, "preprocess", "shape_predictor_68_face_landmarks.dat")
+RECOGNITION_PATH = os.path.join(BASE_DIR, "preprocess", "dlib_face_recognition_resnet_model_v1.dat")
+
+def download_model_if_missing(local_path, url, model_name):
+    if not os.path.exists(local_path):
+        # 自动创建 preprocess 文件夹目录
+        os.makedirs(os.path.dirname(local_path), exist_ok=True)
+        
+        # 在云端页面上友好提示正在下载大文件，防止白屏误导用户
+        with st.spinner(f"📥 首次部署启动，正在从公开镜像站下载 {model_name} (约100MB)... 请静候1-2分钟。"):
+            try:
+                # 开启免登录直链流式下载
+                urllib.request.urlretrieve(url, local_path)
+            except Exception as e:
+                st.error(f"❌ {model_name} 下载失败，请刷新重试。报错原因: {e}")
+                st.stop()
+
+# 使用 Hugging Face 官方的高速公开稳定直链镜像，无需你自己上传任何大文件
+LANDMARKS_URL = "https://huggingface.co/AnyaSforza/dlib_shape_predictor_68_face_landmarks/resolve/main/shape_predictor_68_face_landmarks.dat"
+RECOGNITION_URL = "https://huggingface.co/vvishesh/dlib-models/resolve/main/dlib_face_recognition_resnet_model_v1.dat"
+
+# 执行静默检查，缺失时触发自动下载
+download_model_if_missing(PREDICTOR_PATH, LANDMARKS_URL, "人脸68点定位模型")
+download_model_if_missing(RECOGNITION_PATH, RECOGNITION_URL, "人脸识别特征模型")
 
 # 引入新模块
 import landing_page
@@ -21,14 +57,6 @@ import Champions_detail
 import views_profile
 import views_color
 import views_todo
-
-# ================= 1. 核心配置 (必须是第一行执行的代码) =================
-st.set_page_config(
-    page_title="Beauty Face | 审美实验室",
-    page_icon="✨",
-    layout="wide",
-    initial_sidebar_state="collapsed"
-)
 
 # ================= 2. 状态初始化与自动恢复 =================
 
