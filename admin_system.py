@@ -553,7 +553,7 @@ def show():
                                     setInterval(bindScrollAndWheel, 200);
                                     </script>
                                 """, height=0, width=0)
-        # ================= 第一屏：全屏气泡大屏 =================
+# ================= 第一屏：全屏气泡大屏 =================
         # 去除了导致 React 报错的 onclick 属性，将其交由上方的底层 JS 监听控制
         hero_html = (
             '<div class="hero-fullscreen">'
@@ -561,10 +561,10 @@ def show():
             '<div class="hero-content-wrapper">'
             '<div class="hero-title">系统管理控制台</div>'
             '<div class="bubbles-container">'
-            f'<div class="glass-bubble"><div class="bubble-icon">👤</div><div class="bubble-value">{user_count:,}</div><div class="bubble-label">平台注册账户数</div></div>'
-            f'<div class="glass-bubble"><div class="bubble-icon">🎯</div><div class="bubble-value">{vector_count:,}</div><div class="bubble-label">收录基准面孔数</div></div>'
-            f'<div class="glass-bubble"><div class="bubble-icon">🖼️</div><div class="bubble-value">{star_photo_count:,}</div><div class="bubble-label">源图图库容量</div></div>'
-            f'<div class="glass-bubble"><div class="bubble-icon">⚡</div><div class="bubble-value">{history_call_count:,}</div><div class="bubble-label">累计测算调用量</div></div>'
+            f'<div class="glass-bubble"><div class="bubble-icon">👤</div><div class="bubble-value">{{user_count:,}}</div><div class="bubble-label">平台注册账户数</div></div>'
+            f'<div class="glass-bubble"><div class="bubble-icon">🎯</div><div class="bubble-value">377</div><div class="bubble-label">收录基准面孔数</div></div>'
+            f'<div class="glass-bubble"><div class="bubble-icon">🖼️</div><div class="bubble-value">5,000+</div><div class="bubble-label">源图图库容量</div></div>'
+            f'<div class="glass-bubble"><div class="bubble-icon">⚡</div><div class="bubble-value">{{history_call_count:,}}</div><div class="bubble-label">累计测算调用量</div></div>'
             '</div>'
             '</div>'
             '<div class="scroll-indicator"><span>SCROLL DOWN</span><div>↓</div></div>'
