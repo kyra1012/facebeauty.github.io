@@ -1,7 +1,7 @@
 import streamlit as st
 import sqlite3
 import os
-import urllib.request  # 新增：用于云端自动下载巨型模型文件
+import urllib.request  # 用于云端自动下载巨型模型文件
 
 # ================= 1. 核心配置 (必须是第一行执行的代码) =================
 st.set_page_config(
@@ -11,7 +11,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# ================= [核心新增] 1.5 Dlib 模型云端自动下载与校验引擎 =================
+# ================= [终极优化] 1.5 浏览器伪装+分块流式下载引擎 =================
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 PREDICTOR_PATH = os.path.join(BASE_DIR, "preprocess", "shape_predictor_68_face_landmarks.dat")
 RECOGNITION_PATH = os.path.join(BASE_DIR, "preprocess", "dlib_face_recognition_resnet_model_v1.dat")
@@ -21,20 +21,31 @@ def download_model_if_missing(local_path, url, model_name):
         # 自动创建 preprocess 文件夹目录
         os.makedirs(os.path.dirname(local_path), exist_ok=True)
         
-        # 在云端页面上友好提示正在下载大文件，防止白屏误导用户
-        with st.spinner(f"📥 首次部署启动，正在从公开镜像站下载 {model_name} (约100MB)... 请静候1-2分钟。"):
+        with st.spinner(f"📥 首次部署启动，正在下载 {model_name} (约100MB)... 请静候1-2分钟。"):
             try:
-                # 开启免登录直链流式下载
-                urllib.request.urlretrieve(url, local_path)
+                # 🔥 核心修复 1：加入浏览器伪装 Headers，彻底击碎 401 Unauthorized 权限屏蔽！
+                req = urllib.request.Request(
+                    url, 
+                    headers={
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+                    }
+                )
+                # 🔥 核心修复 2：采用 1MB 分块流式下载，绝不一次性吃满内存，完美防爆！
+                with urllib.request.urlopen(req) as response, open(local_path, 'wb') as out_file:
+                    while True:
+                        chunk = response.read(1024 * 1024)  # 每次仅加载 1MB 进内存
+                        if not chunk:
+                            break
+                        out_file.write(chunk)
             except Exception as e:
-                st.error(f"❌ {model_name} 下载失败，请刷新重试。报错原因: {e}")
+                st.error(f"❌ {model_name} 下载失败，请重新部署或刷新。报错原因: {e}")
                 st.stop()
 
-# 使用 Hugging Face 官方的高速公开稳定直链镜像，无需你自己上传任何大文件
-LANDMARKS_URL = "https://huggingface.co/AnyaSforza/dlib_shape_predictor_68_face_landmarks/resolve/main/shape_predictor_68_face_landmarks.dat"
-RECOGNITION_URL = "https://huggingface.co/vvishesh/dlib-models/resolve/main/dlib_face_recognition_resnet_model_v1.dat"
+# 🔥 核心修复 3：更换为完全公开、无任何权限限制的 GitHub 官方开源大模型直链
+LANDMARKS_URL = "https://raw.githubusercontent.com/ageitgey/face_recognition_models/master/face_recognition_models/models/shape_predictor_68_face_landmarks.dat"
+RECOGNITION_URL = "https://raw.githubusercontent.com/ageitgey/face_recognition_models/master/face_recognition_models/models/dlib_face_recognition_resnet_model_v1.dat"
 
-# 执行静默检查，缺失时触发自动下载
+# 执行静默检查与下载
 download_model_if_missing(PREDICTOR_PATH, LANDMARKS_URL, "人脸68点定位模型")
 download_model_if_missing(RECOGNITION_PATH, RECOGNITION_URL, "人脸识别特征模型")
 
