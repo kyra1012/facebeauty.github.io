@@ -1,1 +1,14 @@
-.vercel
+# 忽略 Python 虚拟环境
+venv/
+.venv/
+env/
+ENV/
+
+# 忽略 Python 运行缓存
+**/__pycache__/
+*.pyc
+
+# 忽略你项目中庞大的图片和数据集（这些不能走 GitHub 传输）
+face/crawl_images/
+face/dataset/
+*.db
