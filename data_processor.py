@@ -7,8 +7,9 @@ import glob
 # ================= 配置区域 =================
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_FILE = os.path.join(BASE_DIR, "dataset/csv/data.xlsx")
-CHAMPION_DIR = r"C:\Users\86153\Desktop\FaceBeautyProject\dataset\Decade_Champions"
-YEARLY_TOP10_DIR = r"C:\Users\86153\Desktop\FaceBeautyProject\dataset\Yearly_Top10_face"
+
+CHAMPION_DIR = os.path.join(BASE_DIR, "dataset", "Decade_Champions")
+YEARLY_TOP10_DIR = os.path.join(BASE_DIR, "dataset", "Yearly_Top10_face")
 
 EAST_COUNTRIES = [
     '中国', '中国大陆', '中国台湾', '台湾', '香港', '韩国', '日本', '泰国',
