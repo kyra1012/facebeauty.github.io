@@ -8,3 +8,5 @@ plotly
 imutils
 Pillow
 dlib-bin
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch
