@@ -1,0 +1,65 @@
+{
+    "1110": {
+        "name": "敏敏",
+        "password": "",
+        "avatar": "assets\\avatars\\1110_1772954466.png",
+        "title": "新晋体验官",
+        "level": "Lv.1",
+        "signature": "这个人很懒什么也没留下。",
+        "login_days": 1,
+        "password_hash": "5c44b7cfc3567d63d2958cc91ee27d1afda082360cbc01e831e95127a789f2fe",
+        "region": "北京市 朝阳区",
+        "birth_year": 2004,
+        "points": 20,
+        "last_sign_in": "2026-03-02",
+        "is_vip": true,
+        "check_in_history": [
+            "2026-03-02",
+            "2026-03-05"
+        ],
+        "daily_uses": 2,
+        "daily_uses_date": "2026-03-05"
+    },
+    "admin27": {
+        "name": "admin27",
+        "password": "",
+        "avatar": "",
+        "title": "新晋体验官",
+        "level": "Lv.1",
+        "signature": "这个人很懒，还没有设置签名。",
+        "login_days": 1,
+        "region": "青海省 西宁市",
+        "birth_year": 2004
+    },
+    "haru": {
+        "name": "haru",
+        "password": "",
+        "avatar": "assets\\avatars\\haru_1771849345.png",
+        "title": "新晋体验官",
+        "level": "Lv.1",
+        "signature": "这个人很懒，还没有设置签名嘻嘻",
+        "login_days": 1,
+        "region": "上海市 静安区",
+        "birth_year": 2001
+    },
+    "test1": {
+        "name": "shimin",
+        "password": "",
+        "avatar": "assets\\avatars\\test1_1772432429.png",
+        "title": "新晋体验官",
+        "level": "Lv.1",
+        "signature": "今天是三月二号",
+        "login_days": 1,
+        "region": "广东省 广州市",
+        "birth_year": 2003
+    },
+    "1112": {
+        "name": "1112",
+        "password": "",
+        "avatar": "",
+        "title": "新晋体验官",
+        "level": "Lv.1",
+        "signature": "这个人很懒，还没有设置签名。",
+        "login_days": 1
+    }
+}

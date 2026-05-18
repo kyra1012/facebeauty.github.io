@@ -1,0 +1,9 @@
+[theme]
+primaryColor = "#B39DDB"        # 柔和的香芋紫
+#backgroundColor = "#FCF9F3"
+secondaryBackgroundColor = "#FFFFFF"
+textColor = "#5E5470"           # 深紫灰
+font = "sans serif"
+
+[server]
+runOnSave = true
