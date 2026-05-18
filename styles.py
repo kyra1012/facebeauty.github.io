@@ -2,8 +2,7 @@ import streamlit as st
 import base64
 import os
 import textwrap
-import sqlite3  # 新增：用于动态校验用户权限
-import data_manager  # 确保引用了 data_manager
+import data_manager 
 
 
 # ==============================================================================
@@ -25,33 +24,7 @@ def get_img_as_base64(file_path):
 
 
 # ==============================================================================
-# 2. 核心内部鉴权引擎 (与 main.py 核心放行逻辑完全同步)
-# ==============================================================================
-def check_current_user_is_admin(user_id):
-    if not user_id or user_id == "guest":
-        return False
-    # 1. 兜底保护：超级管理员特权账号直接放行
-    if user_id in ["admin27", "admin"]:
-        return True
-    # 2. 动态拦截：查询数据库校验真实角色权限
-    try:
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        db_path = os.path.join(current_dir, "user_data.db")
-        if os.path.exists(db_path):
-            conn = sqlite3.connect(db_path)
-            c = conn.cursor()
-            c.execute("SELECT role FROM users WHERE username=?", (user_id,))
-            row = c.fetchone()
-            conn.close()
-            if row and "Admin" in row[0]:
-                return True
-    except Exception:
-        pass
-    return False
-
-
-# ==============================================================================
-# 3. 核心 CSS 加载
+# 2. 核心 CSS 加载
 # ==============================================================================
 def load_css():
     raw_css = """
@@ -167,18 +140,18 @@ def load_css():
             filter: drop-shadow(0 0 15px rgba(255,255,255,0.9));
         }
 
-        /* 用户头像与下拉卡片 */
+        /* 用户头像与下拉卡片 - 高级质感优化版 */
         .user-menu-details { 
             position: relative; 
             cursor: pointer; 
             margin-left: 12px; 
-            z-index: 1000002; 
+            z-index: 1000002; /* 确保层级最高 */
         }
 
-        /* 头像按钮 */
+        /* 头像按钮优化 */
         .user-avatar-btn {
             list-style: none; 
-            width: 36px; height: 36px; 
+            width: 36px; height: 36px; /*稍微加大尺寸*/
             border-radius: 50%;
             background: #FFFFFF;
             border: 1px solid rgba(0,0,0,0.06);
@@ -195,19 +168,19 @@ def load_css():
         }
         .user-avatar-btn::-webkit-details-marker { display: none; }
 
-        /* 下拉卡片容器 */
+        /* 下拉卡片容器 - 仿 iOS 高级模糊质感 */
         .user-dropdown-card {
             position: absolute; 
             top: 50px; right: 0; 
             width: 220px;
-            background: rgba(255, 255, 255, 0.95); 
-            backdrop-filter: blur(20px); 
+            background: rgba(255, 255, 255, 0.95); /* 高透明度白色 */
+            backdrop-filter: blur(20px); /* 强毛玻璃效果 */
             -webkit-backdrop-filter: blur(20px);
             border-radius: 16px;
             box-shadow: 
-                0 0 0 1px rgba(0,0,0,0.03), 
-                0 20px 50px -10px rgba(0,0,0,0.12), 
-                0 10px 20px -5px rgba(0,0,0,0.04); 
+                0 0 0 1px rgba(0,0,0,0.03), /* 极细内描边 */
+                0 20px 50px -10px rgba(0,0,0,0.12), /* 扩散阴影 */
+                0 10px 20px -5px rgba(0,0,0,0.04); /* 核心阴影 */
             padding: 12px; 
             display: flex; flex-direction: column; gap: 4px;
             animation: slideInMenu 0.25s cubic-bezier(0.16, 1, 0.3, 1); 
@@ -240,13 +213,13 @@ def load_css():
             letter-spacing: -0.3px;
         }
 
-        /* 链接按钮通用样式 */
+        /* 链接按钮通用样式 - 强制去除蓝色和下划线 */
         .card-action-link {
-            text-decoration: none !important; 
+            text-decoration: none !important; /* 核心：去除下划线 */
             display: flex; align-items: center; gap: 12px;
             padding: 10px 12px; 
             border-radius: 10px; 
-            color: #555 !important; 
+            color: #555 !important; /* 核心：去除蓝色，改为深灰 */
             font-size: 14px; 
             font-weight: 500;
             transition: all 0.2s ease;
@@ -256,9 +229,9 @@ def load_css():
 
         /* 悬停效果 */
         .card-action-link:hover { 
-            background: rgba(0,0,0,0.04); 
-            color: #000 !important; 
-            transform: translateX(4px); 
+            background: rgba(0,0,0,0.04); /* 极淡的灰色背景 */
+            color: #000 !important; /* 悬停变黑 */
+            transform: translateX(4px); /* 微妙的位移 */
         }
 
         /* 图标微调 */
@@ -266,12 +239,12 @@ def load_css():
             font-size: 16px; 
             width: 20px; 
             text-align: center; 
-            filter: grayscale(100%); 
+            filter: grayscale(100%); /* 图标去色，更显高级 */
             opacity: 0.7;
             transition: all 0.2s;
         }
         .card-action-link:hover .icon {
-            filter: grayscale(0%); 
+            filter: grayscale(0%); /* 悬停恢复彩色 */
             opacity: 1;
             transform: scale(1.1);
         }
@@ -279,7 +252,7 @@ def load_css():
         /* 退出登录特殊样式 */
         .action-logout { 
             margin-top: 4px;
-            color: #c9302c !important; 
+            color: #c9302c !important; /* 保持红色警示 */
             opacity: 0.8;
         }
         .action-logout:hover { 
@@ -345,22 +318,25 @@ def load_css():
 
 
 # ==============================================================================
-# 4. 绘制极简贴边导航栏 + 头像卡片 (已加入动态权限隔离)
+# 3. 核心修复：绘制极简贴边导航栏 + 头像卡片
 # ==============================================================================
 def draw_navbar():
+    # 1. 优先获取 URL 参数
     params = st.query_params
     current_page = params.get("page", "landing")
     sub_view = params.get("sub_view", "")
 
+    # 2. 获取正确的用户 Session
     user_id = st.session_state.get("current_user_id", "guest")
 
-    # 🔥 核心鉴权调用：获取当前用户是否为管理员
-    is_admin = check_current_user_is_admin(user_id)
-
+    # 3. 初始化默认值
     display_name = "Guest"
     initial = "G"
+
+    # --- 核心修改：构建 URL 参数后缀，确保点击链接后 ID 不丢失 ---
     uid_suffix = f"&uid={user_id}" if user_id != "guest" else ""
 
+    # 4. 如果不是访客，尝试获取真实数据
     if user_id != "guest":
         try:
             info = data_manager.get_user_info(user_id)
@@ -369,51 +345,38 @@ def draw_navbar():
             else:
                 display_name = user_id
         except Exception:
-            display_name = user_id
+            display_name = user_id  # 出错时兜底显示账号
 
+    # 5. 计算首字母（确保不为空）
     if display_name:
         initial = display_name[0].upper()
     else:
         initial = "U"
 
+    # 6. 定义内部函数 get_cls (必须在 draw_navbar 内部以访问 current_page)
     def get_cls(target_page, target_sub=""):
+        # 核心修复：如果 URL 中没有明确的 sub_view，直接读取 session_state 中真实的默认状态
         actual_sub_view = sub_view if sub_view else st.session_state.get("nav_radio", "cockpit")
+
         if target_page == "审美趋势":
+            # 只要目标子页面与实际加载的子页面一致，就加上 active 高亮
             if target_sub == actual_sub_view and current_page == "审美趋势":
                 return "active"
         elif current_page == target_page and target_sub == "":
             return "active"
         return ""
 
-    # 🔥 核心修复：根据 is_admin 状态动态拼接左侧导航链接
-    links_html = ""
-    if is_admin:
-        # 只有管理员登录，才能在导航栏最左边看到并点击“大屏导览”
-        links_html += f'<a href="/?page=审美趋势&sub_view=cockpit{uid_suffix}" target="_self" class="minimal-link {get_cls("审美趋势", "cockpit")}">大屏导览</a>'
-        
-    # 其余面向公众、普通用户的通用功能按钮正常平铺展示
-    links_html += f"""
-        <a href="/?page=审美趋势&sub_view=dashboard{uid_suffix}" target="_self" class="minimal-link {get_cls('审美趋势', 'dashboard')}">审美概述</a>
-        <a href="/?page=智能分析{uid_suffix}" target="_self" class="minimal-link {get_cls('智能分析')}">智能分析</a>
-        <a href="/?page=四季色彩{uid_suffix}" target="_self" class="minimal-link {get_cls('四季色彩')}">四季色彩</a>
-        <a href="/?page=美学计划{uid_suffix}" target="_self" class="minimal-link {get_cls('美学计划')}">美学计划</a>
-        <a href="/?page=个人档案{uid_suffix}" target="_self" class="minimal-link {get_cls('个人档案')}">个人档案</a>
-    """
-
-    # 🔥 核心修复：如果在下拉菜单中，管理员登录会额外在底部生成一个「专属系统控制台入口」
-    admin_dropdown_action = ""
-    if is_admin:
-        admin_dropdown_action = f"""
-        <a href="/?page=后台管理{uid_suffix}" target="_self" class="card-action-link" style="color: #8E24AA !important; font-weight: 700; background: rgba(142,36,170,0.05);">
-            <span class="icon" style="filter:none; opacity:1;">⚙️</span> 进入后台系统
-        </a>
-        """
-
+    # 7. 生成 HTML (注意：所有链接都追加了 {uid_suffix})
     raw_html = f"""
     <div class="top-right-nav-container">
 
         <div class="nav-links-group">
-            {links_html}
+            <a href="/?page=审美趋势&sub_view=cockpit{uid_suffix}" target="_self" class="minimal-link {get_cls('审美趋势', 'cockpit')}">大屏导览</a>
+            <a href="/?page=审美趋势&sub_view=dashboard{uid_suffix}" target="_self" class="minimal-link {get_cls('审美趋势', 'dashboard')}">审美概述</a>
+            <a href="/?page=智能分析{uid_suffix}" target="_self" class="minimal-link {get_cls('智能分析')}">智能分析</a>
+            <a href="/?page=四季色彩{uid_suffix}" target="_self" class="minimal-link {get_cls('四季色彩')}">四季色彩</a>
+            <a href="/?page=美学计划{uid_suffix}" target="_self" class="minimal-link {get_cls('美学计划')}">美学计划</a>
+            <a href="/?page=个人档案{uid_suffix}" target="_self" class="minimal-link {get_cls('个人档案')}">个人档案</a>
         </div>
 
         <details class="user-menu-details">
@@ -433,9 +396,6 @@ def draw_navbar():
                 <a href="/?page=个人档案{uid_suffix}" target="_self" class="card-action-link">
                     <span class="icon">🔒</span> 修改密码
                 </a>
-                
-                {admin_dropdown_action}
-                
                 <a href="/?action=logout" target="_self" class="card-action-link action-logout">
                     <span class="icon">🚪</span> 退出登录
                 </a>
