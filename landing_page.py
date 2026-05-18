@@ -74,24 +74,32 @@ def show():
     @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,600;1,400&family=Montserrat:wght@200;400;500&display=swap');
     @import url('https://fonts.googleapis.com/css2?family=Courier+New&display=swap');
 
-    /* --- 基础重置 --- */
+/* --- 基础重置 --- */
     .stApp {
         margin: 0; padding: 0;
         background-color: #F9F7F2; /* 全局米杏色背景 */
         font-family: 'Montserrat', sans-serif;
-        overflow: hidden !important; 
     }
     .block-container { padding: 0 !important; max-width: 100% !important; margin: 0 !important; }
     header, footer, #MainMenu { display: none !important; }
 
     /* --- 全屏滚动容器 --- */
     .scroll-container {
-        height: 100vh; width: 100vw; overflow-y: scroll;
-        scroll-snap-type: y mandatory; scroll-behavior: smooth;
-        scrollbar-width: none; -ms-overflow-style: none;
+        width: 100vw;
+        min-height: 100vh;
     }
-    .scroll-container::-webkit-scrollbar { display: none; }
 
+    /* 📱 针对桌面端保留酷炫的吸附滚动，移动端自动放开以防 iframe 导致白屏 */
+    @media (min-width: 768px) {
+        .stApp { overflow: hidden !important; }
+        .scroll-container {
+            height: 100vh;
+            overflow-y: scroll;
+            scroll-snap-type: y mandatory;
+            scroll-behavior: smooth;
+        }
+    }
+    
     /* --- 通用 Section 样式 --- */
     .snap-section {
         height: 100vh; width: 100vw; scroll-snap-align: start;
