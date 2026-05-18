@@ -258,7 +258,7 @@ RESULT_CSS = """
     .block-container {
         padding-top: 0px !important;
         padding-bottom: 0px !important;
-        margin-top: -80px !important; /* 强制抵消系统导航栏占位 */
+        margin-top: -80px !important; /* 强制抵消 system 导航栏占位 */
         max-width: 100% !important;
     }
 
@@ -508,9 +508,44 @@ def load_yaml(filename):
 
 # ----------------- 辅助函数 -----------------
 def get_image_base64(path):
-    if os.path.exists(path):
+    if path and os.path.exists(path):
         with open(path, "rb") as img_file: return base64.b64encode(img_file.read()).decode().replace('\n', '')
     return ""
+
+
+# 🔥 核心新增：智能多策略明星路径解析器，彻底抹平云端 Linux 与本地 Windows 的路径不一致问题
+def resolve_star_image_path(image_path):
+    if not image_path:
+        return ""
+    
+    current_dir = os.path.dirname(os.path.abspath(__file__)) # 即 face/ 目录
+    repo_root = os.path.abspath(os.path.join(current_dir, "..")) # 即代码总仓库根目录
+    
+    # 统一清洗 Windows 的反斜杠 \ 为 Linux 标准斜杠 /
+    clean_path = image_path.replace("\\", "/")
+    base_name = os.path.basename(clean_path)
+    
+    # 智能探测优先级链条
+    candidates = [
+        clean_path,
+        os.path.join(current_dir, clean_path),
+        os.path.join(repo_root, clean_path),
+        os.path.join(current_dir, "dataset", "Best_Images", base_name),
+        os.path.join(current_dir, "dataset", clean_path),
+        os.path.join(repo_root, "dataset", "Best_Images", base_name),
+    ]
+    
+    # 如果全局服务中包含底层的 IMAGES_ROOT 配置，也一并加入校验
+    if 'services' in globals() and hasattr(services, 'IMAGES_ROOT'):
+        candidates.append(os.path.join(services.IMAGES_ROOT, clean_path))
+        candidates.append(os.path.join(services.IMAGES_ROOT, "dataset", "Best_Images", base_name))
+        
+    for candidate in candidates:
+        if candidate and os.path.exists(candidate):
+            return candidate
+            
+    # 兜底降级策略：默认寻找当前子视图目录下的 Best_Images 文件夹
+    return os.path.join(current_dir, "dataset", "Best_Images", base_name)
 
 
 def array_to_base64(img_array):
@@ -750,49 +785,41 @@ def show():
     c_btn_back, c_btn_save, c_btn_print = st.columns([0.15, 0.15, 1], gap="medium")
 
     # --- 1. 生成当前照片的唯一“特征指纹” ---
-    # 利用 embedding 数据生成唯一哈希值，这样即使用户重新上传同一张照片，系统也能认出是同一张
     current_signature = None
     if 'embedding' in user_res:
-        # 将 numpy 数组转为 bytes 并计算哈希，作为唯一标识
         current_signature = hash(user_res['embedding'].tobytes())
 
-    # --- 2. 初始化保存记录 (如果 Session 中没有，则创建) ---
+    # --- 2. 初始化保存记录 ---
     if 'saved_signatures' not in st.session_state:
         st.session_state.saved_signatures = set()
 
     with c_btn_back:
         if st.button("← 返回页面", key="btn_back", type="secondary"):
             st.session_state.analyzed = False
-            # 清除上传状态，防止返回首页后自动触发分析
             if 'uploaded_file' in st.session_state:
                 del st.session_state.uploaded_file
             if 'user_res' in st.session_state:
                 del st.session_state.user_res
             st.rerun()
 
-        # ================= 修复后的保存逻辑 (V2.0 强制兼容版) =================
+        # ================= 保存逻辑 =================
         with c_btn_save:
             current_user = st.session_state.get("current_user_id", "guest")
 
             if current_user != "guest":
                 if st.button("💾 保存记录", key="btn_save"):
-                    # --- 0. 核心修复：提前定义关键变量 ---
-                    # 将数据提取移到 try 块之外或最顶部，防止 UnboundLocalError
                     user_res = st.session_state.user_res
-                    stats = user_res.get('stats', {})  # <--- 在这里定义，后续所有步骤都能用
-                    info = user_res.get('analysis', {})  # <--- 在这里定义
+                    stats = user_res.get('stats', {})  
+                    info = user_res.get('analysis', {})  
 
-                    # 生成唯一指纹防止重复
                     current_signature = None
                     if 'embedding' in user_res:
                         current_signature = hash(user_res['embedding'].tobytes())
 
-                    # 检查是否重复
                     if current_signature and current_signature in st.session_state.saved_signatures:
                         st.toast("当前图片已保存，请勿重复操作", icon="⚠️")
                     else:
                         try:
-                            # --- 内部工具函数 ---
                             def make_serializable(obj):
                                 if isinstance(obj, (np.ndarray, np.generic)):
                                     return obj.tolist()
@@ -814,7 +841,7 @@ def show():
                             if not os.path.exists(img_dir): os.makedirs(img_dir)
                             if not os.path.exists(report_dir): os.makedirs(report_dir)
 
-                            # 2. 清理旧数据 (保留最新30条)
+                            # 2. 清理旧数据
                             try:
                                 existing_imgs = sorted(
                                     [os.path.join(img_dir, f) for f in os.listdir(img_dir) if
@@ -842,10 +869,9 @@ def show():
                             report_full_path = os.path.join(report_dir, report_filename)
 
                             # 4. 保存图片
-                            # 确保图片是 BGR 格式 (OpenCV默认)
                             cv2.imwrite(img_full_path, user_res['raw_img'])
 
-                            # 5. 保存 JSON (使用顶部定义的 stats 和 info)
+                            # 5. 保存 JSON
                             raw_report_data = {
                                 "timestamp": timestamp_str,
                                 "stats": stats,
@@ -863,11 +889,9 @@ def show():
                                 json.dump(clean_report_data, f, ensure_ascii=False, indent=2)
 
                             # 6. 存入数据库
-                            # 计算分数
                             if 'total_score' in stats:
                                 final_score = float(stats['total_score'])
                             else:
-                                # 临时计算分数
                                 user_scores_list = services.AdvancedFeatureCalculator.normalize_for_radar(stats)
                                 final_score = float(
                                     sum(user_scores_list) / len(user_scores_list)) if user_scores_list else 85.0
@@ -875,7 +899,6 @@ def show():
                             style_tag = info['face'][0] if info.get('face') else "未知风格"
                             feature_tag = info['eyes'][0] if info.get('eyes') else "未知特征"
 
-                            # 兼容性调用
                             try:
                                 data_manager.save_analysis_record(
                                     user_id=current_user,
@@ -886,7 +909,6 @@ def show():
                                     report_path=report_full_path
                                 )
                             except TypeError:
-                                # 如果旧版 data_manager 不支持 report_path 参数
                                 data_manager.save_analysis_record(
                                     user_id=current_user,
                                     score=round(final_score, 1),
@@ -895,7 +917,6 @@ def show():
                                     img_path=img_full_path
                                 )
 
-                            # 7. 更新状态
                             if current_signature:
                                 st.session_state.saved_signatures.add(current_signature)
 
@@ -910,11 +931,11 @@ def show():
                     st.toast("请登录账号以解锁保存功能", icon="🔒")
     with c_btn_print:
         if st.button("🖨️ 生成报告", key="btn_print"):
-            # 关键修复：恢复使用 window.parent.print()，这是打印整个 Streamlit 页面的正确方法
             components.html(
                 """<script>setTimeout(function(){window.parent.print();}, 500);</script>""",
                 height=0, width=0
             )
+            
     # ================= P1: 维度解密 =================
     st.markdown('<div class="res-h2">维度解密 (Dimension Decoding)</div>', unsafe_allow_html=True)
     portrait_img = crop_portrait_3_4(user_res['raw_img'], user_res['shape'])
@@ -940,7 +961,6 @@ def show():
     st.markdown(
         f"""<div class="equal-height-container"><div class="left-image-box"><img src="data:image/jpeg;base64,{b64_img}"><div class="image-tag">RAW PORTRAIT</div></div><div class="right-info-box">{"".join(cards)}</div></div>""",
         unsafe_allow_html=True)
-    #st.markdown('<div style="height:-10px"></div>', unsafe_allow_html=True)
 
     # ================= P2: 雷达图 MAX (Split Layout) =================
     st.markdown('<div class="res-h2">六维美学雷达 (Aesthetic Radar)</div>', unsafe_allow_html=True)
@@ -956,7 +976,6 @@ def show():
     insight_gen = InteractiveInsightGenerator(user_scores, star_scores, top_star['name'], categories, raw_stats,
                                               p2_data)
 
-    # 1. Top Section: Radar (Left) + Full Rank List (Right)
     st.markdown('<div class="radar-split-container">', unsafe_allow_html=True)
 
     c_chart, c_rank = st.columns([2.5, 1])
@@ -989,16 +1008,13 @@ def show():
         st_echarts(options=option, height="450px", key="radar_main")
 
     with c_rank:
-        # Generate Full 6-Item Ranking List
         cat_short = [c.split(' ')[0] for c in categories]
-        # Sort ALL scores descending
         sorted_indices = np.argsort(user_scores)[::-1]
         sorted_data = [(cat_short[i], user_scores[i]) for i in sorted_indices]
 
         html_rank = '<div class="rank-v-container">'
         for idx, (name, score) in enumerate(sorted_data):
             rank = idx + 1
-            # 样式判断：Top 3 彩色，其余灰色
             if rank == 1:
                 badge_cls = "v-rank-1"
             elif rank == 2:
@@ -1062,7 +1078,8 @@ def show():
 
     muse_cards_html = ""
     for star in neighbors:
-        img_path = os.path.join(services.IMAGES_ROOT, star['image_path'])
+        # 🔥 核心修复：调用智能解析器对卡片头像路径进行环境自适应
+        img_path = resolve_star_image_path(star['image_path'])
         b64_s = get_image_base64(img_path)
         img_src = f"data:image/jpeg;base64,{b64_s}" if b64_s else "https://via.placeholder.com/80"
         tag, insight = get_muse_content(star['name'], p3_data)
@@ -1082,9 +1099,12 @@ def show():
     star_n = top_star['name']
     user_img_bgr = user_res['raw_img']
     star_img_bgr = None
-    if os.path.exists(os.path.join(services.IMAGES_ROOT, top_star['image_path'])):
+    
+    # 🔥 核心修复：调用智能解析器对高光模块比对图进行路径多重对齐
+    resolved_top_star_path = resolve_star_image_path(top_star['image_path'])
+    if resolved_top_star_path and os.path.exists(resolved_top_star_path):
         star_img_bgr = cv2.imdecode(
-            np.fromfile(os.path.join(services.IMAGES_ROOT, top_star['image_path']), dtype=np.uint8), -1)
+            np.fromfile(resolved_top_star_path, dtype=np.uint8), -1)
 
     if mask_on:
         user_masked = apply_feature_mask_overlay(user_img_bgr, user_res['shape'], best_feat)
@@ -1125,7 +1145,6 @@ def show():
     feat_desc = "AI分析数据生成中..."
 
     if p4_data and 'highlight_features' in p4_data:
-        # 获取当前五官的具体亚型 (如：桃花眼, 标准直鼻)
         subtype_name = "Standard"
         mapping = {'eye': 'eyes', 'nose': 'nose', 'lip': 'lip', 'brow': 'brow'}
         analysis_key = mapping.get(best_feat)
@@ -1138,20 +1157,17 @@ def show():
         if clean_subtype in hl_data:
             template = hl_data[clean_subtype]
             fmt_context = get_p4_context(user_res['shape'], raw_stats, star_n)
-            fmt_context['score'] = score  # 注入相似度分值
+            fmt_context['score'] = score  
 
             try:
-                # 1. 提取基础字段
                 core_detail = template.get('core_detail', '').format(**fmt_context)
                 makeup_advice = template.get('makeup_advice', '').format(**fmt_context)
                 tool_tips = template.get('tool_tips', '').format(**fmt_context)
 
-                # 2. 从 star_similarity 字段中提取建议（去掉相似度套话）
                 full_sim_text = template.get('star_similarity', '').format(**fmt_context)
                 advice_part = full_sim_text.split("建设性建议：</b>")[
                     -1].strip() if "建设性建议：</b>" in full_sim_text else full_sim_text
 
-                # 3. 词汇替换：映射为夸赞性成语
                 poetic_mapping = {
                     'eye': '明眸善睐',
                     'brow': '娥眉如画',
@@ -1161,7 +1177,6 @@ def show():
                 display_label = poetic_mapping.get(best_feat, clean_subtype)
                 feat_title = f"✨ {display_label}"
 
-                # 4. 关键：手动拼接字符串，确保生成的 HTML 每一行行首都没有空格
                 feat_desc = (
                     f"<div style='margin-bottom:12px; font-weight:700; color:#EC407A; font-size:15px;'>📍 经测算，你与{star_n}的相似度为 {score:.1f}%</div>"
                     f"<div style='margin-bottom:15px; color:#546E7A; line-height:1.6;'>{core_detail}</div>"
@@ -1177,7 +1192,6 @@ def show():
         else:
             feat_desc = f"您的五官比例极佳，具有天然的辨识度。"
 
-        # 最终渲染 HTML 模块
     html_block = (
         f"<div class='highlight-card'>"
         f"<div class='compare-row'>"
